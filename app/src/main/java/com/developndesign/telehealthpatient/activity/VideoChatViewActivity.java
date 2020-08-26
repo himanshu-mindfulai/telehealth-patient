@@ -26,10 +26,14 @@ import androidx.core.content.ContextCompat;
 
 import com.developndesign.telehealthpatient.R;
 import com.developndesign.telehealthpatient.model.BookAppointmentModelData;
+import com.developndesign.telehealthpatient.network.SendNotificationToDoctor;
 import com.developndesign.telehealthpatient.utils.LocalData;
 import com.developndesign.telehealthpatient.utils.MongoDB;
+import com.google.android.material.textfield.TextInputLayout;
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 
+import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 import cdflynn.android.library.checkview.CheckView;
@@ -79,7 +83,7 @@ public class VideoChatViewActivity extends AppCompatActivity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-
+                    Log.i("agora","Join channel success, uid: " + (uid & 0xFFFFFFFFL));
                 }
             });
         }
@@ -90,7 +94,6 @@ public class VideoChatViewActivity extends AppCompatActivity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-
                     setupRemoteVideo(uid);
                 }
             });
@@ -176,9 +179,113 @@ public class VideoChatViewActivity extends AppCompatActivity {
             if (response != null) {
                 try {
                     countDownTimer.cancel();
-                    Intent i = new Intent(VideoChatViewActivity.this, MainActivity.class);
-                    i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                    startActivity(i);
+                    AlertDialog.Builder builder = new AlertDialog.Builder(VideoChatViewActivity.this);
+                    View view = LayoutInflater.from(VideoChatViewActivity.this)
+                            .inflate(R.layout.doctor_review, null);
+                    builder.setView(view);
+                    final AlertDialog dialog = builder.create();
+                    dialog.show();
+                    final TextInputLayout text = view.findViewById(R.id.text);
+                    final ImageView s1 = view.findViewById(R.id.star_1);
+                    final ImageView s2 = view.findViewById(R.id.star_2);
+                    final ImageView s3 = view.findViewById(R.id.star_3);
+                    final ImageView s4 = view.findViewById(R.id.star_4);
+                    final ImageView s5 = view.findViewById(R.id.star_5);
+                    final int[] rating = {-1};
+                    final TextView notNow = view.findViewById(R.id.cancel);
+                    final boolean[] bool = {false};
+                    s1.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            rating[0] = 1;
+                            bool[0] = true;
+                            s1.setImageDrawable(getResources().getDrawable(R.drawable.ic_star));
+                            s2.setImageDrawable(getResources().getDrawable(R.drawable.ic_star_outline));
+                            s3.setImageDrawable(getResources().getDrawable(R.drawable.ic_star_outline));
+                            s4.setImageDrawable(getResources().getDrawable(R.drawable.ic_star_outline));
+                            s5.setImageDrawable(getResources().getDrawable(R.drawable.ic_star_outline));
+                        }
+                    });
+                    s2.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            rating[0] = 2;
+                            bool[0] = true;
+                            s1.setImageDrawable(getResources().getDrawable(R.drawable.ic_star));
+                            s2.setImageDrawable(getResources().getDrawable(R.drawable.ic_star));
+                            s3.setImageDrawable(getResources().getDrawable(R.drawable.ic_star_outline));
+                            s4.setImageDrawable(getResources().getDrawable(R.drawable.ic_star_outline));
+                            s5.setImageDrawable(getResources().getDrawable(R.drawable.ic_star_outline));
+                        }
+                    });
+                    s3.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            rating[0] = 3;
+                            bool[0] = true;
+                            s1.setImageDrawable(getResources().getDrawable(R.drawable.ic_star));
+                            s2.setImageDrawable(getResources().getDrawable(R.drawable.ic_star));
+                            s3.setImageDrawable(getResources().getDrawable(R.drawable.ic_star));
+                            s4.setImageDrawable(getResources().getDrawable(R.drawable.ic_star_outline));
+                            s5.setImageDrawable(getResources().getDrawable(R.drawable.ic_star_outline));
+                        }
+                    });
+                    s4.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            bool[0] = true;
+                            rating[0] = 4;
+                            s1.setImageDrawable(getResources().getDrawable(R.drawable.ic_star));
+                            s2.setImageDrawable(getResources().getDrawable(R.drawable.ic_star));
+                            s3.setImageDrawable(getResources().getDrawable(R.drawable.ic_star));
+                            s4.setImageDrawable(getResources().getDrawable(R.drawable.ic_star));
+                            s5.setImageDrawable(getResources().getDrawable(R.drawable.ic_star_outline));
+                        }
+                    });
+                    s5.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            bool[0] = true;
+                            rating[0] = 5;
+                            s1.setImageDrawable(getResources().getDrawable(R.drawable.ic_star));
+                            s2.setImageDrawable(getResources().getDrawable(R.drawable.ic_star));
+                            s3.setImageDrawable(getResources().getDrawable(R.drawable.ic_star));
+                            s4.setImageDrawable(getResources().getDrawable(R.drawable.ic_star));
+                            s5.setImageDrawable(getResources().getDrawable(R.drawable.ic_star));
+                        }
+                    });
+                    text.setEndIconOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            //sendReview
+                            if (bool[0]) {
+                                dialog.cancel();
+                                JsonObject jsonObject = new JsonObject();
+                                jsonObject.addProperty("doctor", id);
+                                jsonObject.addProperty("rating", rating[0]);
+                                jsonObject.addProperty("review", text.getEditText().getText().toString());
+                                new SendReview().execute(
+                                        MongoDB.ADD_DOCTOR_REVIEW,
+                                        jsonObject.toString(),
+                                        localData.getToken()
+                                );
+                                Intent i = new Intent(VideoChatViewActivity.this, MainActivity.class);
+                                i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                                startActivity(i);
+                            } else {
+                                Toast.makeText(VideoChatViewActivity.this, "Please select a rating star", Toast.LENGTH_SHORT).show();
+                            }
+                        }
+                    });
+                    notNow.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            dialog.cancel();
+                            Intent i = new Intent(VideoChatViewActivity.this, MainActivity.class);
+                            i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                            startActivity(i);
+                        }
+                    });
                 } catch (Exception e) {
                     Log.e("TAG", "onPostExecute: " + e);
                     Toast.makeText(VideoChatViewActivity.this, "" + e, Toast.LENGTH_SHORT).show();
@@ -186,6 +293,26 @@ public class VideoChatViewActivity extends AppCompatActivity {
             }
         }
 
+    }
+
+    class SendReview extends AsyncTask<String, Void, String>{
+
+        @Override
+        protected String doInBackground(String... strings) {
+            OkHttpClient client = new OkHttpClient();
+            Request request = new Request.Builder()
+                    .url(strings[0])
+                    .post(RequestBody.create(MediaType.parse("application/json;charset=utf-8"), strings[1]))
+                            .addHeader("Content-Type", "application/json;charset=utf-8")
+                                    .addHeader("token", strings[2])
+                                    .build();
+            try {
+                return client.newCall(request).execute().toString();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return "";
+        }
     }
 
     private void onRemoteUserLeft() {
@@ -206,25 +333,38 @@ public class VideoChatViewActivity extends AppCompatActivity {
         setContentView(R.layout.activity_video_chat_view);
         initUI();
         id = getIntent().getStringExtra("id");
-        bookAppointmentModelData = getIntent().getParcelableExtra(LocalData.BOOK_APPOINTMENT);
-        Log.e("TAG", "onCreate: " + id);
-        if (checkSelfPermission(REQUESTED_PERMISSIONS[0], PERMISSION_REQ_ID) &&
-                checkSelfPermission(REQUESTED_PERMISSIONS[1], PERMISSION_REQ_ID) &&
-                checkSelfPermission(REQUESTED_PERMISSIONS[2], PERMISSION_REQ_ID)) {
-            initEngineAndJoinChannel();
+        try {
+            sendNotificationToDoctor();
+            bookAppointmentModelData = getIntent().getParcelableExtra(LocalData.BOOK_APPOINTMENT);
+            Log.e("TAG", "onCreate: " + id);
+            if (checkSelfPermission(REQUESTED_PERMISSIONS[0], PERMISSION_REQ_ID) &&
+                    checkSelfPermission(REQUESTED_PERMISSIONS[1], PERMISSION_REQ_ID) &&
+                    checkSelfPermission(REQUESTED_PERMISSIONS[2], PERMISSION_REQ_ID)) {
+                initEngineAndJoinChannel();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
+    }
+
+    private void sendNotificationToDoctor() throws Exception {
+        if (id == null){
+            throw new Exception("Please provide a valid id of doctor");
+        }
+        new SendNotificationToDoctor().execute(
+                new String[]
+                        {MongoDB.SEND_NOTIFICATION_URL + "/" + id,
+                                localData.getToken()});
     }
 
     private void initUI() {
         localData = new LocalData(VideoChatViewActivity.this);
         mLocalContainer = findViewById(R.id.local_video_view_container);
         mRemoteContainer = findViewById(R.id.remote_video_view_container);
-
         mCallBtn = findViewById(R.id.btn_call);
         mMuteBtn = findViewById(R.id.btn_mute);
         mSwitchCameraBtn = findViewById(R.id.btn_switch_camera);
         timerTextView = findViewById(R.id.timerText);
-
     }
 
     private void startTimer() {
@@ -339,6 +479,9 @@ public class VideoChatViewActivity extends AppCompatActivity {
     }
 
     private void leaveChannel() {
+        if (mRtcEngine == null){
+            return;
+        }
         mRtcEngine.leaveChannel();
     }
 

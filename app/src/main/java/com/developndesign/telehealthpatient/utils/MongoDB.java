@@ -16,4 +16,6 @@ public class MongoDB {
     public static final String BOOK_APPOINTMENT_URL=WEB_URL+"/api/appointment";
     public static final String SEND_TOKEN_URL = WEB_URL + "/api/firebase/notification/add";
     public static final String SEND_NOTIFICATION_URL = WEB_URL + "/api/call/id/";
+    public static final String TERMS_URL = WEB_URL + "/api/tac";
+    public static final String ADD_DOCTOR_REVIEW = WEB_URL + "/api/dreview";
 }
